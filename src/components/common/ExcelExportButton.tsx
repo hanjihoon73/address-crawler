@@ -17,8 +17,7 @@ export default function ExcelExportButton({ data, disabled }: Props) {
             '번호': item.id,
             '상호명': item.name,
             '지번 주소': item.jibunAddress || '-',
-            '도로명 주소': item.roadAddress || '-',
-            '카테고리': item.category || '-'
+            '도로명 주소': item.roadAddress || '-'
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(formattedData);

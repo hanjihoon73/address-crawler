@@ -10,38 +10,38 @@
 ## 제안된 변경 사항
 
 ### 1. 프로젝트 초기화 및 구조 설정
-- **Next.js (App Router)** 기반 웹 애플리케이션 생성
-- User Rules에 따른 폴더 구조 설정 (`src/components`, `src/hooks`, `src/utils`, `src/api`)
+- [x] **Next.js (App Router)** 기반 웹 애플리케이션 생성
+- [x] User Rules에 따른 폴더 구조 설정 (`src/components`, `src/hooks`, `src/utils`, `src/api`)
 
 ### 2. 백엔드 (API & Crawler)
 #### [NEW] src/app/api/crawl/route.ts
-- 클라이언트의 검색 요청(`keywords`, `limit`)을 받아 크롤링 로직을 실행하는 API 엔드포인트.
+- [x] 클라이언트의 검색 요청(`keywords`, `limit`)을 받아 크롤링 로직을 실행하는 API 엔드포인트.
 
 #### [NEW] src/utils/crawler.ts
-- **Puppeteer**를 사용한 브라우저 제어 로직.
-- 네이버 지도 페이지 이동 및 iframe 진입 (`searchIframe`).
-- 리스트 스크롤링으로 데이터 로드.
-- 각 아이템별 "V" 버튼(상세보기) 클릭 시뮬레이션 및 데이터 추출 로직.
-- 지번 주소 우선 추출, 없을 경우 도로명 주소 추출.
+- [x] **Puppeteer**를 사용한 브라우저 제어 로직.
+- [x] 네이버 지도 페이지 이동 및 iframe 진입 (`searchIframe`).
+- [x] 리스트 스크롤링으로 데이터 로드.
+- [x] 각 아이템별 "V" 버튼(상세보기) 클릭 시뮬레이션 및 데이터 추출 로직.
+- [x] 지번 주소 우선 추출, 없을 경우 도로명 주소 추출. (Refactored to Merge Basic/Detail)
 
 ### 3. 프론트엔드 (UI/UX)
 #### [NEW] src/hooks/useMapCrawler.ts
-- API 호출 상태 관리 (로딩, 데이터, 에러).
-- 검색 결과 상태 관리.
+- [x] API 호출 상태 관리 (로딩, 데이터, 에러).
+- [x] 검색 결과 상태 관리.
 
 #### [NEW] src/components/search/SearchForm.tsx
-- 검색어 입력 및 수집 개수(다이얼/숫자) 입력 폼.
-- 검색 버튼 (크롤링 시작).
+- [x] 검색어 입력 및 수집 개수(다이얼/숫자) 입력 폼.
+- [x] 검색 버튼 (크롤링 시작).
 
 #### [NEW] src/components/result/ResultTable.tsx
-- 수집된 데이터 테이블 표시.
-- **페이지네이션 기능**: 검색 결과가 20개를 초과할 경우 페이지 번호 표시 및 이동 기능.
+- [x] 수집된 데이터 테이블 표시.
+- [x] **페이지네이션 기능**: 검색 결과가 20개를 초과할 경우 페이지 번호 표시 및 이동 기능.
 
 #### [NEW] src/components/common/ExcelExportButton.tsx
-- `xlsx` 라이브러리를 사용하여 현재 수집된 데이터를 엑셀 파일로 다운로드.
+- [x] `xlsx` 라이브러리를 사용하여 현재 수집된 데이터를 엑셀 파일로 다운로드.
 
 #### [MODIFY] src/app/page.tsx
-- 전체 레이아웃 조합.
+- [x] 전체 레이아웃 조합.
 
 ## 검증 계획
 

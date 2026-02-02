@@ -16,7 +16,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
 
   try {
     browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
     });
 
@@ -163,15 +163,12 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
               const lastBasicToken = basicTokens[basicTokens.length - 1];
 
               if (jibunDetail.startsWith(lastBasicToken)) {
-                // Check overlap. e.g. Basic: "...신천동", Detail: "신천동 20-6"
                 const cleanDetail = jibunDetail.substring(lastBasicToken.length).trim();
                 jibunAddress = `${basicAddress} ${cleanDetail}`.trim();
               } else if (jibunDetail.startsWith(basicAddress)) {
-                // Detail contains full basic, e.g. "Seoul Songpa-gu Sincheon-dong 20-6"
                 jibunAddress = jibunDetail;
               } else {
                 jibunAddress = `${basicAddress} ${jibunDetail}`.trim();
-                // One last check: if detail already contains basic
                 if (jibunDetail.includes(basicAddress)) jibunAddress = jibunDetail;
               }
             } else if (jibunDetail) {
@@ -180,21 +177,64 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
               jibunAddress = basicAddress;
             }
 
+            // Step 4: Extract Road Address
+            // Logic: "Si/Gu" from basicAddress + "Road Detail" from popup
+
+            // 4-1. Extract Si/Gu Prefix
+            let siGuPrefix = '';
+            let roadDetail = '';
+
+            if (basicAddress) {
+              const tokens = basicAddress.split(/\s+/);
+              if (tokens.length >= 2) {
+                if (tokens.length >= 3 && tokens[1].endsWith('시') && tokens[2].endsWith('구')) {
+                  siGuPrefix = tokens.slice(0, 3).join(' ');
+                } else {
+                  siGuPrefix = tokens.slice(0, 2).join(' ');
+                }
+              } else {
+                siGuPrefix = basicAddress;
+              }
+            }
+
+            // 4-2. Extract Road Detail
+            const roadMatch = cleanText.match(/도로명(.*?)(?=복사)/);
+            if (roadMatch) {
+              roadDetail = roadMatch[1].trim();
+            }
+
+            // 4-3. Merge for Road Address
+            let roadAddress = '';
+            if (siGuPrefix && roadDetail) {
+              if (roadDetail.startsWith(siGuPrefix)) {
+                roadAddress = roadDetail;
+              } else {
+                const prefixTokens = siGuPrefix.split(/\s+/);
+                const lastPrefixToken = prefixTokens[prefixTokens.length - 1];
+
+                if (roadDetail.startsWith(lastPrefixToken)) {
+                  const cleanRoadDetail = roadDetail.substring(lastPrefixToken.length).trim();
+                  roadAddress = `${siGuPrefix} ${cleanRoadDetail}`.trim();
+                } else {
+                  roadAddress = `${siGuPrefix} ${roadDetail}`.trim();
+                }
+              }
+            } else if (roadDetail) {
+              roadAddress = roadDetail;
+            } else {
+              roadAddress = '';
+            }
+
+            results.push({
+              id: i + 1,
+              name,
+              jibunAddress,
+              roadAddress,
+            });
+
           } catch (e) {
             console.log('Parsing detail error', e);
           }
-
-          // Step 4: Final Output
-          // Jibun Field = Merged Address
-          // Road Field = Empty (per user request)
-
-          results.push({
-            id: i + 1,
-            name,
-            jibunAddress: jibunAddress,
-            roadAddress: '', // Explicitly empty 
-          });
-
         } catch (e) {
           console.error(`Error processing item ${i}:`, e);
         }

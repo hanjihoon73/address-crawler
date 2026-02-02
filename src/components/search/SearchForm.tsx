@@ -38,9 +38,9 @@ export default function SearchForm({ onSearch, isLoading }: Props) {
                     <div className={styles.limitInputWrapper}>
                         <input
                             type="number"
-                            min="10"
+                            min="1"
                             max="200"
-                            step="10"
+                            step="1"
                             value={limit}
                             onChange={(e) => setLimit(Number(e.target.value))}
                             className={styles.limitInput}
