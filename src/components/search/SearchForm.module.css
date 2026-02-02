@@ -1,0 +1,142 @@
+.form {
+    width: 100%;
+    max-width: 42rem;
+    background-color: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .row {
+        flex-direction: row;
+    }
+}
+
+.inputGroup {
+    flex: 1;
+    position: relative;
+}
+
+.iconWrapper {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    outline: none;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.limitGroup {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .limitGroup {
+        width: 12rem;
+    }
+}
+
+.limitInputWrapper {
+    position: relative;
+}
+
+.limitInput {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    outline: none;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.limitInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.unit {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-sub);
+    font-size: 0.875rem;
+}
+
+.submitBtn {
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius-lg);
+    font-weight: bold;
+    color: white;
+    background-color: var(--primary);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.submitBtn:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.submitBtn:active:not(:disabled) {
+    background-color: var(--primary-active);
+    transform: scale(0.98);
+}
+
+.submitBtn:disabled {
+    background-color: #cbd5e1;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.helpText {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    padding-left: 0.25rem;
+}

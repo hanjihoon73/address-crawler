@@ -1,0 +1,27 @@
+.button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: all 0.2s;
+    background-color: #16a34a;
+    /* Green 600 */
+    color: white;
+}
+
+.button:hover:not(:disabled) {
+    background-color: #15803d;
+    /* Green 700 */
+}
+
+.button:active:not(:disabled) {
+    background-color: #14532d;
+}
+
+.button:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
