@@ -35,7 +35,7 @@ export default function ExcelExportButton({ data, disabled }: Props) {
             className={styles.button}
         >
             <Download size={18} />
-            <span>엑셀 다운로드</span>
+            <span>Download</span>
         </button>
     );
 }

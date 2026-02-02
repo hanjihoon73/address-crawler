@@ -28,7 +28,7 @@ export default function SearchForm({ onSearch, isLoading }: Props) {
                         type="text"
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
-                        placeholder="키워드를 입력하세요 (예: 강남 맛집)"
+                        placeholder="키워드를 입력하세요."
                         className={styles.input}
                         disabled={isLoading}
                     />
@@ -39,7 +39,7 @@ export default function SearchForm({ onSearch, isLoading }: Props) {
                         <input
                             type="number"
                             min="1"
-                            max="200"
+                            max="500"
                             step="1"
                             value={limit}
                             onChange={(e) => setLimit(Number(e.target.value))}
@@ -66,7 +66,7 @@ export default function SearchForm({ onSearch, isLoading }: Props) {
                 </button>
             </div>
             <p className={styles.helpText}>
-                * 최대 200개까지 수집 가능합니다. 시간이 다소 소요될 수 있습니다.
+                * 한 번에 최대 500개까지 수집 가능합니다. 수집량이 클 수록 시간이 많이 소요됩니다.
             </p>
         </form>
     );

@@ -16,7 +16,7 @@ export default function Home() {
         <div className={styles.headerContent}>
           <div className={styles.logoArea}>
             <div className={styles.logoIcon}>N</div>
-            <h1 className={styles.logoTitle}>지도 데이터 수집기</h1>
+            <h1 className={styles.logoTitle}>Address Crawler</h1>
           </div>
           <div>
             <ExcelExportButton data={data} />
@@ -30,7 +30,7 @@ export default function Home() {
         <div className={styles.searchSection}>
           <div className={styles.heroText}>
             <h2 className={styles.heroTitle}>
-              원하는 키워드의 장소 정보를 빠르게 수집하세요
+              원하는 키워드의 주소를 빠르게 수집하세요
             </h2>
             <p className={styles.heroSubtitle}>
               상호명, 지번 주소, 도로명 주소를 엑셀로 한 번에 다운로드할 수 있습니다.
