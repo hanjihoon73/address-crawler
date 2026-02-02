@@ -55,7 +55,7 @@ export default function Home() {
           <div className={styles.loading}>
             <div className={styles.loadingSpinner} />
             <p className={styles.pulse}>데이터를 수집하고 있습니다. 잠시만 기다려주세요...</p>
-            <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>브라우저가 실행되며 수집 과정이 진행됩니다.</p>
+            <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>백그라운드에서 크롬 브라우저가 실행 중입니다.</p>
           </div>
         )}
 
