@@ -37,31 +37,21 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
     // 3. Wait for list to load
     await searchFrame.waitForSelector('ul > li', { timeout: 10000 });
 
-    let previousCount = 0;
-    let failCount = 0;
+    let processedIndex = 0; // Items processed on CURRENT PAGE
+    let noScrollCount = 0; // Count of times scrolling didn't yield new content
 
     while (results.length < limit) {
-      // Find all items
       const items = await searchFrame.$$('ul > li');
 
-      if (items.length === previousCount) {
-        failCount++;
-        if (failCount > 5) break;
-        await searchFrame.evaluate(() => {
-          const container = document.querySelector('#_pcmap_list_scroll_container') || document.body;
-          container.scrollTop = container.scrollHeight;
-        });
-        await new Promise(r => setTimeout(r, 1000));
-        continue;
-      }
-
-      previousCount = items.length;
-
-      for (let i = results.length; i < items.length && results.length < limit; i++) {
+      // Process new items
+      for (let i = processedIndex; i < items.length && results.length < limit; i++) {
         const item = items[i];
+        processedIndex++; // Mark handled
 
         try {
           await item.scrollIntoView();
+
+          // START EXTRACTION
 
           // Name
           const nameEl = await item.$('.place_bluelink');
@@ -77,10 +67,8 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
             name = text.split('\n')[0];
           }
 
-          // Address Expand Button
+          // Address Button
           let addressButton: ElementHandle<HTMLButtonElement> | null = null;
-
-          // Find Button
           const spans = await item.$$('span, div');
           let addressContainer = null;
 
@@ -92,9 +80,8 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
               const parentEl = parent.asElement();
               if (parentEl) {
                 const siblingBtn = await parentEl.$('button');
-                if (siblingBtn) {
-                  addressButton = siblingBtn;
-                } else {
+                if (siblingBtn) addressButton = siblingBtn;
+                else {
                   const grandParent = await parentEl.evaluateHandle(el => el.parentElement);
                   const grandParentEl = grandParent.asElement();
                   if (grandParentEl) {
@@ -120,48 +107,40 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
             }
           }
 
-          // Step 1: Capture Basic Address (Before Click)
+          // 1. Basic Address
           let basicAddress = '';
           if (addressContainer) {
             const rawText = await addressContainer.evaluate(el => el.textContent?.trim() || '');
             const regionMatch = rawText.match(/(서울|경기|인천|강원|충청|전라|경상|제주|부산|대구|광주|대전|울산|세종).*/);
-            if (regionMatch) {
-              basicAddress = regionMatch[0].replace('상세주소 열기', '').trim();
-            } else {
-              basicAddress = rawText.replace('상세주소 열기', '').trim();
-            }
+            if (regionMatch) basicAddress = regionMatch[0].replace('상세주소 열기', '').trim();
+            else basicAddress = rawText.replace('상세주소 열기', '').trim();
           }
 
-          // Click Expansion
+          // Click Expand
           if (addressButton) {
             try {
               await addressButton.click();
-              await new Promise(r => setTimeout(r, 800)); // Wait for expansion
+              await new Promise(r => setTimeout(r, 500));
             } catch (e) {
-              console.log('Failed to click address button', e);
+              // console.log('Failed to click address button', e); // Suppress frequent logs
             }
           }
 
-          // Step 2: Capture Detail Address (Popup) & Merge
+          // 2. Detail & Merge
           let jibunAddress = '';
           let jibunDetail = '';
+          let fullText = '';
+          let cleanText = '';
 
           try {
-            // Re-evaluate full text
-            const fullText = await item.evaluate(el => el.innerText);
-            const cleanText = fullText.replace(/\n/g, ' ');
-
-            // Extract Jibun Detail
+            fullText = await item.evaluate(el => el.innerText);
+            cleanText = fullText.replace(/\n/g, ' ');
             const jibunMatch = cleanText.match(/지번(.*?)(?=복사)/);
-            if (jibunMatch) {
-              jibunDetail = jibunMatch[1].trim();
-            }
+            if (jibunMatch) jibunDetail = jibunMatch[1].trim();
 
-            // Step 3: Merge Basic + Detail -> Jibun
             if (basicAddress && jibunDetail) {
               const basicTokens = basicAddress.split(/\s+/);
               const lastBasicToken = basicTokens[basicTokens.length - 1];
-
               if (jibunDetail.startsWith(lastBasicToken)) {
                 const cleanDetail = jibunDetail.substring(lastBasicToken.length).trim();
                 jibunAddress = `${basicAddress} ${cleanDetail}`.trim();
@@ -171,19 +150,12 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
                 jibunAddress = `${basicAddress} ${jibunDetail}`.trim();
                 if (jibunDetail.includes(basicAddress)) jibunAddress = jibunDetail;
               }
-            } else if (jibunDetail) {
-              jibunAddress = jibunDetail;
-            } else {
-              jibunAddress = basicAddress;
-            }
+            } else if (jibunDetail) jibunAddress = jibunDetail;
+            else jibunAddress = basicAddress;
 
-            // Step 4: Extract Road Address
-            // Logic: "Si/Gu" from basicAddress + "Road Detail" from popup
-
-            // 4-1. Extract Si/Gu Prefix
+            // 3. Road Address
             let siGuPrefix = '';
             let roadDetail = '';
-
             if (basicAddress) {
               const tokens = basicAddress.split(/\s+/);
               if (tokens.length >= 2) {
@@ -192,66 +164,98 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
                 } else {
                   siGuPrefix = tokens.slice(0, 2).join(' ');
                 }
-              } else {
-                siGuPrefix = basicAddress;
-              }
+              } else siGuPrefix = basicAddress;
             }
-
-            // 4-2. Extract Road Detail
             const roadMatch = cleanText.match(/도로명(.*?)(?=복사)/);
-            if (roadMatch) {
-              roadDetail = roadMatch[1].trim();
-            }
+            if (roadMatch) roadDetail = roadMatch[1].trim();
 
-            // 4-3. Merge for Road Address
             let roadAddress = '';
             if (siGuPrefix && roadDetail) {
-              if (roadDetail.startsWith(siGuPrefix)) {
-                roadAddress = roadDetail;
-              } else {
+              if (roadDetail.startsWith(siGuPrefix)) roadAddress = roadDetail;
+              else {
                 const prefixTokens = siGuPrefix.split(/\s+/);
                 const lastPrefixToken = prefixTokens[prefixTokens.length - 1];
-
                 if (roadDetail.startsWith(lastPrefixToken)) {
                   const cleanRoadDetail = roadDetail.substring(lastPrefixToken.length).trim();
                   roadAddress = `${siGuPrefix} ${cleanRoadDetail}`.trim();
-                } else {
-                  roadAddress = `${siGuPrefix} ${roadDetail}`.trim();
-                }
+                } else roadAddress = `${siGuPrefix} ${roadDetail}`.trim();
               }
-            } else if (roadDetail) {
-              roadAddress = roadDetail;
-            } else {
-              roadAddress = '';
-            }
+            } else if (roadDetail) roadAddress = roadDetail;
 
-            results.push({
-              id: i + 1,
-              name,
-              jibunAddress,
-              roadAddress,
-            });
+            results.push({ id: results.length + 1, name, jibunAddress, roadAddress });
 
           } catch (e) {
-            console.log('Parsing detail error', e);
+            // console.log('Parsing detail error', e); // Suppress frequent logs
           }
+          // END EXTRACTION
         } catch (e) {
           console.error(`Error processing item ${i}:`, e);
         }
       }
 
-      if (results.length < limit) {
-        await searchFrame.evaluate(() => {
-          const scrollContainer = document.querySelector('#_pcmap_list_scroll_container');
-          if (scrollContainer) {
-            scrollContainer.scrollBy(0, 1000);
-          } else {
-            window.scrollBy(0, 1000);
+      // Check Limits
+      if (results.length >= limit) break;
+
+      // Scrolling
+      const prevHeight = await searchFrame.evaluate(() => document.querySelector('#_pcmap_list_scroll_container')?.scrollHeight || 0);
+      await searchFrame.evaluate(() => {
+        const c = document.querySelector('#_pcmap_list_scroll_container') || document.body;
+        c.scrollTop = c.scrollHeight;
+      });
+      await new Promise(r => setTimeout(r, 1000));
+      const newHeight = await searchFrame.evaluate(() => document.querySelector('#_pcmap_list_scroll_container')?.scrollHeight || 0);
+
+      if (newHeight === prevHeight) {
+        noScrollCount++;
+      } else {
+        noScrollCount = 0;
+      }
+
+      // Pagination Trigger (if no scroll change for 2 iterations, try page)
+      if (noScrollCount > 2) {
+        // Look for Next Button
+        const nextBtnHandle = await searchFrame.evaluateHandle(() => {
+          const spans = Array.from(document.querySelectorAll('span'));
+          const nextSpan = spans.find(s => s.textContent?.includes('다음페이지'));
+          if (nextSpan) {
+            return nextSpan.closest('a') || nextSpan.closest('button');
           }
+          // Alternative: look for aria-disabled="false" and right arrow icon
+          const buttons = Array.from(document.querySelectorAll('a, button'));
+          // Naver often uses <a ... aria-disabled="false"> <span class="blind">다음페이지</span> ... </a>
+          return buttons.find(b => b.textContent?.includes('다음') || b.querySelector('span')?.textContent?.includes('다음페이지'));
         });
-        await new Promise(r => setTimeout(r, 1500));
+
+        // Check if valid element handle
+        const nextBtn = nextBtnHandle.asElement();
+
+        if (nextBtn) {
+          // Check if disabled
+          const isDisabled = await nextBtn.evaluate((el) => {
+            const element = el as HTMLElement; // Explicit cast
+            return element.getAttribute('aria-disabled') === 'true' || element.classList.contains('disabled');
+          });
+
+          if (!isDisabled) {
+            await nextBtn.click();
+            await new Promise(r => setTimeout(r, 2000)); // Wait for page load
+            processedIndex = 0; // Reset for new page items
+            noScrollCount = 0;
+            // Wait for list to have items
+            try {
+              await searchFrame.waitForSelector('ul > li', { timeout: 5000 });
+            } catch (e) {
+              // If timeout, maybe no items or slow load
+            }
+            continue; // Continue loop
+          }
+        }
+
+        // If we couldn't scroll AND couldn't find/click Next Page -> Stop
+        break;
       }
     }
+
 
     return results;
 
