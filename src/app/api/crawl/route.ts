@@ -16,11 +16,8 @@ export async function POST(req: NextRequest) {
         const results = await crawlNaverMap(keyword, searchLimit);
 
         return NextResponse.json({ results });
-    } catch (error: any) {
+    } catch (error) {
         console.error('API Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to crawl data', details: error.message || String(error) },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Failed to crawl data' }, { status: 500 });
     }
 }

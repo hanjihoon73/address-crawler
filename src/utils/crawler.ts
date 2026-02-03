@@ -1,4 +1,4 @@
-import { Browser, Page, ElementHandle } from 'puppeteer-core'; // Use types from puppeteer-core
+import { Browser, Page, ElementHandle } from 'puppeteer-core';
 
 interface CrawlResult {
   id: number;
@@ -11,7 +11,6 @@ interface CrawlResult {
 const WAIT_TIMEOUT = 3000;
 
 export async function crawlNaverMap(keyword: string, limit: number): Promise<CrawlResult[]> {
-  console.log(`[Crawler] Starting crawl for keyword: "${keyword}", limit: ${limit}`);
   let browser: Browser | null = null;
   const results: CrawlResult[] = [];
 
@@ -26,7 +25,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
         args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
         defaultViewport: { width: 1280, height: 1024 },
         executablePath: await chromium.executablePath(),
-        headless: true, // chromium.headless might be better if types allowed, but true is fine
+        headless: true,
         ignoreHTTPSErrors: true,
       } as any);
     } else {
@@ -44,9 +43,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
 
     // 1. Navigate to Naver Map Search
     const url = `https://map.naver.com/p/search/${encodeURIComponent(keyword)}`;
-    console.log(`[Crawler] Navigating to: ${url}`);
     await page.goto(url, { waitUntil: 'networkidle2' });
-    console.log('[Crawler] Navigation and networkidle2 wait complete');
 
     // 2. Wait for searchIframe
     const searchIframeElement = await page.waitForSelector('#searchIframe', { timeout: 10000 });
@@ -363,11 +360,8 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
 
     return results;
 
-  } catch (error: any) {
-    console.error('[Crawler] Fatal Error:', error);
-    if (error instanceof Error) {
-      console.error('[Crawler] Error Stack:', error.stack);
-    }
+  } catch (error) {
+    console.error('Crawler failed:', error);
     throw error;
   } finally {
     if (browser) await browser.close();
