@@ -58,9 +58,14 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
           let name = 'Unknown';
           if (nameEl) {
             name = await nameEl.evaluate(el => {
-              const clone = el.cloneNode(true) as HTMLElement;
-              Array.from(clone.querySelectorAll('span')).forEach(s => s.remove());
-              return clone.textContent?.trim() || el.textContent?.trim() || '';
+              // Fix: Name is often in the first span, and Category in the second.
+              // <span class="YwYLL">Name</span><span class="YzBgS">Category</span>
+              const nameSpan = el.querySelector('span');
+              if (nameSpan) {
+                return nameSpan.textContent?.trim() || '';
+              }
+              // Fallback: if no span, take full text but be careful
+              return el.textContent?.trim() || '';
             });
           } else {
             const text = await item.evaluate(el => el.innerText);
