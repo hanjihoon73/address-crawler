@@ -67,33 +67,118 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
             name = text.split('\n')[0];
           }
 
-          // Address Button
+          // Address Button & Basic Address Extraction
           let addressButton: ElementHandle<HTMLButtonElement> | null = null;
-          const spans = await item.$$('span, div');
           let addressContainer = null;
+          let basicAddress = '';
 
+          const spans = await item.$$('span, div');
+
+          // Priority 1: Search for distance info (e.g. "11km")
           for (const span of spans) {
             const text = await span.evaluate(el => el.textContent || '');
-            if (text.match(/^(서울|경기|인천|강원|충청|전라|경상|제주|부산|대구|광주|대전|울산|세종)/)) {
-              addressContainer = span;
+            if (text.match(/\d+km/)) {
+              // Found distance info. usage: "11km · Basic Address V"
               const parent = await span.evaluateHandle(el => el.parentElement);
               const parentEl = parent.asElement();
+
               if (parentEl) {
-                const siblingBtn = await parentEl.$('button');
-                if (siblingBtn) addressButton = siblingBtn;
-                else {
-                  const grandParent = await parentEl.evaluateHandle(el => el.parentElement);
-                  const grandParentEl = grandParent.asElement();
-                  if (grandParentEl) {
-                    const uncleBtn = await grandParentEl.$('button');
-                    if (uncleBtn) addressButton = uncleBtn;
+                // Get full text from parent (contains "11km · Address 상세주소 열기 ...")
+                const fullText = await parentEl.evaluate(el => (el as HTMLElement).innerText);
+
+                // 1. Extract text AFTER 'km'
+                // Regex to match "11km" or "1.5km" etc.
+                const kmMatch = fullText.match(/(\d+(?:\.\d+)?km)/);
+                if (kmMatch && kmMatch.index !== undefined) {
+                  let afterKm = fullText.substring(kmMatch.index + kmMatch[0].length);
+
+                  // 2. Remove known "garbage" suffixes (buttons/labels)
+                  // Common garbage: "상세주소 열기", "출발", "도착", "예약"
+                  // We split by the first occurrence of any of these
+                  const garbageMatch = afterKm.match(/(상세주소|출발|도착|예약)/);
+                  if (garbageMatch && garbageMatch.index !== undefined) {
+                    afterKm = afterKm.substring(0, garbageMatch.index);
+                  }
+
+                  // 3. Clean up generic delimiters (whitespace, dots)
+                  basicAddress = afterKm.replace(/^[\s·\.]+/g, '').trim();
+
+                  // 4. Find Address Button (Expand)
+                  // Strategy: The button often WRAPS the address text.
+                  // So we search for a button/a tag that contains the 'basicAddress' we just found.
+                  // If not found, fallback to "상세주소" text.
+                  const expandButton = await parentEl.evaluateHandle((el, addrText) => {
+                    const targetText = addrText.replace(/\s+/g, ''); // Remove spaces for looser matching
+
+                    // Helper to check if element contains address text
+                    const hasAddress = (element: Element) => {
+                      const text = (element.textContent || '').replace(/\s+/g, '');
+                      return text.includes(targetText);
+                    };
+
+                    const allElements = el.querySelectorAll('*');
+                    for (const child of allElements) {
+                      // Check for button/a that contains address text
+                      if ((child.tagName === 'BUTTON' || child.getAttribute('role') === 'button' || child.tagName === 'A') && hasAddress(child)) {
+                        return child;
+                      }
+                    }
+
+                    // Fallback 1: Look for "상세주소"
+                    for (const child of allElements) {
+                      if (child.textContent?.includes('상세주소')) {
+                        return child.closest('button') || child.closest('a') || child;
+                      }
+                    }
+
+                    // Fallback 2: first button or link
+                    return el.querySelector('button') || el.querySelector('a[role="button"]');
+                  }, basicAddress);
+
+                  if (expandButton.asElement()) {
+                    addressButton = expandButton.asElement() as ElementHandle<HTMLButtonElement>;
                   }
                 }
+                addressContainer = span; // Keep reference
+                break;
               }
-              break;
             }
           }
 
+          // Priority 2: Fallback to Region Regex if Priority 1 failed
+          if (!basicAddress) {
+            for (const span of spans) {
+              const text = await span.evaluate(el => el.textContent || '');
+              if (text.match(/^(서울|경기|인천|강원|충청|전라|경상|제주|부산|대구|광주|대전|울산|세종)/)) {
+                addressContainer = span;
+                const parent = await span.evaluateHandle(el => el.parentElement);
+                const parentEl = parent.asElement();
+                if (parentEl) {
+                  // Try to find button widely
+                  const siblingBtn = await parentEl.$('button');
+                  if (siblingBtn) addressButton = siblingBtn;
+                  else {
+                    const grandParent = await parentEl.evaluateHandle(el => el.parentElement);
+                    const grandParentEl = grandParent.asElement();
+                    if (grandParentEl) {
+                      const uncleBtn = await grandParentEl.$('button');
+                      if (uncleBtn) addressButton = uncleBtn;
+                    }
+                  }
+                }
+
+                // Extract Basic Address
+                const rawText = await span.evaluate(el => el.textContent?.trim() || '');
+                const regionMatch = rawText.match(/(서울|경기|인천|강원|충청|전라|경상|제주|부산|대구|광주|대전|울산|세종).*/);
+                if (regionMatch) basicAddress = regionMatch[0].replace('상세주소 열기', '').trim();
+                else basicAddress = rawText.replace('상세주소 열기', '').trim();
+
+                break;
+              }
+            }
+          }
+
+          // Fallback: If address button still missing, try generic search
           if (!addressButton) {
             const spanElements = await item.$$('span');
             for (const span of spanElements) {
@@ -105,15 +190,6 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
                 break;
               }
             }
-          }
-
-          // 1. Basic Address
-          let basicAddress = '';
-          if (addressContainer) {
-            const rawText = await addressContainer.evaluate(el => el.textContent?.trim() || '');
-            const regionMatch = rawText.match(/(서울|경기|인천|강원|충청|전라|경상|제주|부산|대구|광주|대전|울산|세종).*/);
-            if (regionMatch) basicAddress = regionMatch[0].replace('상세주소 열기', '').trim();
-            else basicAddress = rawText.replace('상세주소 열기', '').trim();
           }
 
           // Click Expand
