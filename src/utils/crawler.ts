@@ -107,7 +107,8 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
                   // Strategy: The button often WRAPS the address text.
                   // So we search for a button/a tag that contains the 'basicAddress' we just found.
                   // If not found, fallback to "상세주소" text.
-                  const expandButton = await parentEl.evaluateHandle((el, addrText) => {
+                  const expandButton = await parentEl.evaluateHandle((node, addrText) => {
+                    const el = node as HTMLElement;
                     const targetText = addrText.replace(/\s+/g, ''); // Remove spaces for looser matching
 
                     // Helper to check if element contains address text
@@ -119,6 +120,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
                     const allElements = el.querySelectorAll('*');
                     for (const child of allElements) {
                       // Check for button/a that contains address text
+                      // Note: tagName is usually uppercase in HTML DOM
                       if ((child.tagName === 'BUTTON' || child.getAttribute('role') === 'button' || child.tagName === 'A') && hasAddress(child)) {
                         return child;
                       }
