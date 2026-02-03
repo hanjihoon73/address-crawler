@@ -227,7 +227,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
         });
 
         // Check if valid element handle
-        const nextBtn = nextBtnHandle.asElement();
+        const nextBtn = nextBtnHandle.asElement() as ElementHandle<Element> | null;
 
         if (nextBtn) {
           // Check if disabled
