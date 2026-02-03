@@ -21,11 +21,11 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
 
       browser = await puppeteerCore.launch({
         args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
+        defaultViewport: { width: 1280, height: 1024 },
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        headless: true,
         ignoreHTTPSErrors: true,
-      });
+      } as any);
     } else {
       const puppeteer = await import('puppeteer').then(mod => mod.default);
       browser = await puppeteer.launch({
