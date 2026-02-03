@@ -18,6 +18,7 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
   try {
     if (process.env.NODE_ENV === 'production') {
       console.log('[Crawler] Running in PRODUCTION mode');
+      // @ts-ignore
       const chromium = await import('@sparticuz/chromium').then(mod => mod.default);
       const puppeteerCore = await import('puppeteer-core').then(mod => mod.default);
 
