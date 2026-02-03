@@ -18,14 +18,14 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
   try {
     if (process.env.NODE_ENV === 'production') {
       console.log('[Crawler] Running in PRODUCTION mode');
-      const chromium = await import('@sparticuz/chromium-min').then(mod => mod.default);
+      const chromium = await import('@sparticuz/chromium').then(mod => mod.default);
       const puppeteerCore = await import('puppeteer-core').then(mod => mod.default);
 
       browser = await puppeteerCore.launch({
         args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
         defaultViewport: { width: 1280, height: 1024 },
         executablePath: await chromium.executablePath(),
-        headless: true,
+        headless: true, // chromium.headless might be better if types allowed, but true is fine
         ignoreHTTPSErrors: true,
       } as any);
     } else {
