@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page, ElementHandle } from 'puppeteer';
+import { Browser, Page, ElementHandle } from 'puppeteer-core'; // Use types from puppeteer-core
 
 interface CrawlResult {
   id: number;
@@ -15,10 +15,24 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
   const results: CrawlResult[] = [];
 
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
-    });
+    if (process.env.NODE_ENV === 'production') {
+      const chromium = await import('@sparticuz/chromium-min').then(mod => mod.default);
+      const puppeteerCore = await import('puppeteer-core').then(mod => mod.default);
+
+      browser = await puppeteerCore.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      const puppeteer = await import('puppeteer').then(mod => mod.default);
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1024'],
+      }) as unknown as Browser; // Type assertion needed due to different puppeteer versions
+    }
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 1024 });
