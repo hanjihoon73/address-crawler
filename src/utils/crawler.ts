@@ -14,17 +14,20 @@ export async function crawlNaverMap(keyword: string, limit: number): Promise<Cra
   let browser: Browser | null = null;
   const results: CrawlResult[] = [];
 
+  // Chromium 바이너리 원격 URL (버전에 맞게 설정)
+  const CHROMIUM_PACK_URL = 'https://github.com/Sparticuz/chromium/releases/download/v131.0.0/chromium-v131.0.0-pack.tar';
+
   try {
     if (process.env.NODE_ENV === 'production') {
       console.log('[Crawler] Running in PRODUCTION mode');
       // @ts-ignore
-      const chromium = await import('@sparticuz/chromium').then(mod => mod.default);
+      const chromium = await import('@sparticuz/chromium-min').then(mod => mod.default);
       const puppeteerCore = await import('puppeteer-core').then(mod => mod.default);
 
       browser = await puppeteerCore.launch({
         args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
         defaultViewport: { width: 1280, height: 1024 },
-        executablePath: await chromium.executablePath(),
+        executablePath: await chromium.executablePath(CHROMIUM_PACK_URL),
         headless: true,
         ignoreHTTPSErrors: true,
       } as any);
